@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PIC&POLY Figure order 簡易見積もりサービス　β版</title>
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <!-- Teachable Machine Image ライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <style>
+    /* FontAwesome読み込み */
+    @import url("https://use.fontawesome.com/releases/v5.13.0/css/all.css");
+
+    /* フォント読み込み（フォントファイルのパスは適宜変更してください） */
+    @font-face {
+      font-family: 'line_seed_jp';
+      src: url('line_seed_jp.woff2') format('woff2'),
+           url('line_seed_jp.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+    /* 基本リセット・基本設定 */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'line_seed_jp', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      line-height: 1.6;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      background-color: #333;
+      color: #fff;
+    }
+    header img.logo {
+      width: 50px;
+      height: auto;
+      margin-right: 15px;
+    }
+    header h1 {
+      font-size: 1.2rem;
+      margin: 0;
+    }
+    /* PC表示時のコンテンツ余白（ヘッダー除く） */
+    @media (min-width: 1024px) {
+      .content-wrapper {
+        margin: 0 200px;
+      }
+      .input-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .input-row > div {
+        flex: 1;
+      }
+    }
+    /* トップ画像 */
+    #topImage {
+      width: 100%;
+      overflow: hidden;
+    }
+    #topImage img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    /* 説明文 */
+    #explanation {
+      padding: 20px;
+      text-align: center;
+      background-color: #fff;
+    }
+    /* 注意事項 */
+    #caution {
+      border: 2px solid #f6be5a;
+      padding: 15px;
+      margin: 20px;
+      background-color: #fff;
+    }
+    #caution h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+    }
+    /* 追加オプションセクション */
+    #optionsSection {
+      padding: 20px;
+      background-color: #fff;
+      margin: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #optionsSection h2 {
+      margin-top: 0;
+    }
+    /* 入力エリア（サイズ、カラー数、注文個数）のコンテナ */
+    .input-row > div {
+      margin-bottom: 10px;
+    }
+    /* select要素の背景色・縁無し */
+    #sizeSelect, #colorSelect, #orderCountSelect {
+      background-color: #ffefd2;
+      border: none;
+      padding: 5px;
+    }
+    /* 台座ラジオボタンの画像を大きく（70pxに変更） */
+    #optionsSection label img {
+      width: 70px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    /* 台座のラジオボタンの横幅を均一にする */
+    .base-option-label {
+      width: 150px;
+      text-align: center;
+    }
+    /* 画像アップロードセクション */
+    #uploadSection {
+      padding: 20px;
+      text-align: center;
+      background-color: #fff;
+      margin: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .upload-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .upload-header img.upload-icon {
+      width: 30px;
+      height: auto;
+      margin-right: 8px;
+    }
+    #uploadArea {
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      padding: 20px;
+      cursor: pointer;
+      background-color: #fafafa;
+    }
+    #uploadArea p {
+      margin: 10px 0;
+      font-size: 0.9rem;
+    }
+    /* 画像プレビュー：固定サイズ・中央配置 */
+    #previewSection {
+      text-align: center;
+      padding: 20px;
+    }
+    #preview {
+      width: 300px;
+      height: 300px;
+      object-fit: contain;
+      border: 1px solid #ccc;
+      margin: 0 auto;
+      display: block;
+    }
+    /* モーダル（ポップアップ） */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fff;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    /* 画像個別のサイズ調整 */
+    .modal-content img {
+      height: auto;
+      object-fit: cover;
+      margin-bottom: 15px;
+    }
+    /* 小さめのアップロード画像 */
+    #modalImage {
+      width: 40%;
+      max-width: 150px;
+    }
+    /* プラン画像は横幅ギリギリ */
+    #planImage {
+      width: 100%;
+      max-width: 100%;
+    }
+    #priceResult {
+      font-size: 1.5rem;
+      color: #e88d34;
+      margin: 15px 0;
+    }
+    /* 以下、オーダーするボタンのデザイン（修正後） */
+    .btn-wrap {
+      margin: 30px 0;
+    }
+    a.btn-c {
+      font-size: 1.6rem; 
+      position: relative;
+      padding: 0.5rem 1.5rem 1rem 1.5rem;
+      color: #fff;
+      background: #f6be5a;
+      box-shadow: 0 4px 0 #f2a32b;
+      text-decoration: none;
+      display: inline-block;
+    }
+    a.btn-c span {
+      font-size: 1.2rem;  /* 吹き出しテキストを小さく */
+      position: absolute;
+      top: -0.8rem;       /* 吹き出し位置 */
+      left: 50%;          /* 中央に配置 */
+      transform: translateX(-50%);
+      display: block;
+      padding: 0.2rem 0.5rem;
+      width: 300px; /* この値を変更すると横幅が調整されます */
+      color: #f2a32b;
+      border: 2px solid #f2a32b;
+      border-radius: 100vh;
+      background: #fff;
+      box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2);
+    }
+    a.btn-c span:before {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      content: "";
+      bottom: -6px;
+      border-width: 6px 6px 0 6px;
+      border-style: solid;
+      border-color: #f2a32b transparent transparent transparent;
+    }
+    a.btn-c span:after {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      content: "";
+      bottom: -4px;
+      border-width: 6px 6px 0 6px;
+      border-style: solid;
+      border-color: #fff transparent transparent transparent;
+    }
+    a.btn-c i {
+      margin-right: 0.5rem;
+    }
+    a.btn-c:hover {
+      transform: translateY(3px);
+      color: #fff;
+      background: #f6be5a;
+      box-shadow: 0 2px 0 #f2a32b;
+    }
+    /* 「閉じる」ボタンの背景色変更 */
+    #closeModalBtn {
+      background-color: lightgray;
+    }
+    /* コピーエリアのコンテナ：ボタン右寄せ */
+    #copyContainer {
+      margin-top: 15px;
+      text-align: right;
+    }
+    /* コピーするボタンの背景色ライトグレー */
+    #copyButton {
+      background-color: lightgray;
+    }
+    /* レスポンシブ */
+    @media (max-width: 600px) {
+      header h1 { font-size: 1rem; }
+      .upload-header { flex-direction: column; }
+      .content-wrapper {
+        margin: 0 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header>
+    <img src="logo.png" alt="Logo" class="logo">
+    <h1>PIC&POLY Figure order 簡易見積もりサービス　β版</h1>
+  </header>
+  
+  <!-- ヘッダー以外のコンテンツ -->
+  <div class="content-wrapper">
+    <!-- トップ画像 -->
+    <section id="topImage">
+      <img src="top-image.jpg" alt="Top Image">
+    </section>
+    
+    <!-- 説明文 -->
+    <section id="explanation">
+      <p>
+        アップロードしたイラストを元にフィギュアオーダーの見積もりを<br>
+        自動で算出するサービスです。<br>
+        お気軽に画像をアップロードして、オーダーの参考にしてください。
+      </p>
+    </section>
+    
+    <!-- 注意事項 -->
+    <section id="caution">
+      <h2>注意事項</h2>
+      <p>
+        ※本見積もりは概算です。実際のオーダー料金は、詳細な打ち合わせ後に決定いたします。<br>
+        ※アップロードされた画像は見積もり目的以外には使用いたしません。<br>
+        ※この解析AIはアップロードされたイラストを学習できないようになっているので、安心してご使用ください。
+      </p>
+    </section>
+    
+    <!-- 追加オプション入力 -->
+    <section id="optionsSection">
+      <h2>追加オプション</h2>
+      <!-- 入力エリアを1列にまとめるコンテナ -->
+      <div class="input-row">
+        <div>
+          <label for="sizeSelect">サイズ（mm）：</label>
+          <select id="sizeSelect">
+            <option value="40×40×40">40×40×40</option>
+            <option value="50×50×50">50×50×50</option>
+            <option value="60×60×60">60×60×60</option>
+            <option value="70×70×70">70×70×70</option>
+            <option value="80×80×80">80×80×80</option>
+            <option value="90×90×90">90×90×90</option>
+            <option value="100×100×100">100×100×100</option>
+          </select>
+        </div>
+        <div>
+          <label for="colorSelect">カラー数：</label>
+          <select id="colorSelect">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div>
+          <label for="orderCountSelect">注文個数：</label>
+          <select id="orderCountSelect">
+            <!-- 1～50をJSで動的に追加します -->
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>台座の作成：</label>
+        <div style="display:flex; justify-content: center; gap: 10px;">
+          <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
+            <input type="radio" name="baseOption" value="なし" checked>
+            <br>
+            <img src="base_none.png" alt="なし">
+            なし（フィギュア本体のみ）
+          </label>
+          <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
+            <input type="radio" name="baseOption" value="ワンカラー台座">
+            <br>
+            <img src="base_onecolor.png" alt="ワンカラー台座">
+            ワンカラー台座
+          </label>
+          <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
+            <input type="radio" name="baseOption" value="デザイン台座">
+            <br>
+            <img src="base_design.png" alt="デザイン台座">
+            デザイン台座
+          </label>
+        </div>
+      </div>
+    </section>
+    
+    <!-- 画像アップロードセクション -->
+    <section id="uploadSection">
+      <div class="upload-header">
+        <img src="upload-icon.png" alt="Upload Icon" class="upload-icon">
+        <span>イラストをアップロードして見積もり</span>
+      </div>
+      <div id="uploadArea">
+        <p>ここに画像をドラッグ＆ドロップしてください</p>
+        <p>または、<button id="selectFileBtn">ファイルを選択してアップロード</button></p>
+        <p>対応可能なファイル形式：PNG, JPG, JPEG, GIF</p>
+        <!-- 非表示のファイル選択用 input -->
+        <input type="file" id="fileInput" accept="image/*" style="display:none;">
+      </div>
+    </section>
+    
+    <!-- 画像プレビュー -->
+    <section id="previewSection">
+      <img id="preview" style="display:none;" alt="Preview">
+    </section>
+  </div> <!-- .content-wrapper -->
+  
+  <!-- 結果表示用モーダル -->
+  <div id="resultModal" class="modal">
+    <div class="modal-content">
+      <!-- 画像配置入れ替え：先にplanImage、その後にmodalImage -->
+      <img id="planImage" src="" alt="Plan Image">
+      <img id="modalImage" src="" alt="Result Image">
+      <h3 id="resultText"></h3>
+      <div id="priceResult"></div>
+      <!-- 新規追加：下部にオーダーするボタンを追加 -->
+      <div class="btn-wrap">
+        <a href="" class="btn btn-c" id="orderBtn">
+          <span>診断結果から簡単オーダー！</span><br>
+          <i class="far fa-file-alt"></i>オーダーはこちら
+        </a>
+      </div>
+      <!-- コピー領域の追加（内訳・合計金額も含む） -->
+      <div id="copyContainer">
+        <textarea id="copyText" style="width:100%; height:140px;" readonly></textarea>
+        <button id="copyButton" class="btn">コピーする</button>
+      </div>
+      <p style="font-size:0.8rem; color: #666; text-align: center;">
+        ※こちらの金額は概算お見積もり金額となります。実際のオーダー時に金額が変更となる場合があります。
+      </p>
+      
+      <br><br>
+      <button class="btn" id="closeModalBtn">閉じる</button>
+    </div>
+  </div>
+  
+  <!-- スクリプト -->
+  <script type="module">
+    // キャッシュバスティング用タイムスタンプ
+    const timestamp = new Date().getTime();
+    const modelURL = `./tm_model/model.json?v=${timestamp}`;
+    const metadataURL = `./tm_model/metadata.json?v=${timestamp}`;
+    let model;
+    const MODEL_WIDTH = 224;  // 学習時のサイズ
+    const MODEL_HEIGHT = 224;
+    
+    // 注文個数のセレクトに1～50を追加
+    const orderCountSelect = document.getElementById("orderCountSelect");
+    for (let i = 1; i <= 50; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.text = i;
+      orderCountSelect.appendChild(option);
+    }
+    
+    // モデルロード関数
+    async function loadModel() {
+      model = await tmImage.load(modelURL, metadataURL);
+      console.log("モデルがロードされました");
+    }
+    await loadModel();
+    
+    // 画像の前処理：オフスクリーンキャンバスでリサイズ
+    function preprocessImage(imageElement) {
+      const canvas = document.createElement("canvas");
+      canvas.width = MODEL_WIDTH;
+      canvas.height = MODEL_HEIGHT;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(imageElement, 0, 0, MODEL_WIDTH, MODEL_HEIGHT);
+      return canvas;
+    }
+    
+    // 料金計算用定数・関数
+    const basePrices = {
+      "ライトプラン": 9000,
+      "スタンダードプラン": 15000,
+      "プレミアムプラン": 25000
+    };
+    
+    const sizeCosts = {
+      "ライトプラン": {
+        "40×40×40": 0,
+        "50×50×50": 0,
+        "60×60×60": 500,
+        "70×70×70": 800,
+        "80×80×80": 1000,
+        "90×90×90": 1300,
+        "100×100×100": 1500
+      },
+      "スタンダードプラン": {
+        "40×40×40": "制作不可",
+        "50×50×50": 0,
+        "60×60×60": 0,
+        "70×70×70": 300,
+        "80×80×80": 1000,
+        "90×90×90": 1300,
+        "100×100×100": 1500
+      },
+      "プレミアムプラン": {
+        "40×40×40": "制作不可",
+        "50×50×50": 0,
+        "60×60×60": 0,
+        "70×70×70": 0,
+        "80×80×80": 500,
+        "90×90×90": 1300,
+        "100×100×100": 1500
+      }
+    };
+    
+    function getUnitPrice(plan, orderCount) {
+      if (orderCount >= 2 && orderCount <= 5) {
+        if (plan === "ライトプラン") return 3000;
+        if (plan === "スタンダードプラン") return 5000;
+        if (plan === "プレミアムプラン") return 7000;
+      } else if (orderCount >= 6 && orderCount <= 9) {
+        if (plan === "ライトプラン") return 2600;
+        if (plan === "スタンダードプラン") return 4500;
+        if (plan === "プレミアムプラン") return 6500;
+      } else if (orderCount >= 10 && orderCount <= 19) {
+        if (plan === "ライトプラン") return 2500;
+        if (plan === "スタンダードプラン") return 4300;
+        if (plan === "プレミアムプラン") return 6300;
+      } else if (orderCount >= 20 && orderCount <= 29) {
+        if (plan === "ライトプラン") return 2400;
+        if (plan === "スタンダードプラン") return 3900;
+        if (plan === "プレミアムプラン") return 5800;
+      } else if (orderCount >= 30 && orderCount <= 39) {
+        if (plan === "ライトプラン") return 2300;
+        if (plan === "スタンダードプラン") return 3800;
+        if (plan === "プレミアムプラン") return 5600;
+      } else if (orderCount >= 40 && orderCount <= 50) {
+        if (plan === "ライトプラン") return 2100;
+        if (plan === "スタンダードプラン") return 3600;
+        if (plan === "プレミアムプラン") return 5400;
+      }
+      return 0;
+    }
+    
+    function calculatePrice(plan, orderCount, selectedSize, colorCount, baseOption) {
+      const basePrice = basePrices[plan];
+      const unitPrice = getUnitPrice(plan, orderCount);
+      const sizeOption = sizeCosts[plan][selectedSize];
+      if (sizeOption === "制作不可") {
+        return { total: "選択されたサイズは制作不可です。", breakdown: "" };
+      }
+      let extraColorCost = 0;
+      if (plan === "ライトプラン") {
+        if (colorCount > 3) extraColorCost = (colorCount - 3) * 1500;
+      } else {
+        if (colorCount > 4) extraColorCost = (colorCount - 4) * 1500;
+      }
+      let baseOptionCost = 0;
+      if (baseOption === "ワンカラー台座") baseOptionCost = 300;
+      else if (baseOption === "デザイン台座") baseOptionCost = 500;
+      
+      const additionalUnitsCost = (orderCount - 1) * unitPrice;
+      const sizeCostTotal = sizeOption * orderCount;
+      const baseOptionTotal = baseOptionCost * orderCount;
+      
+      const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal + extraColorCost;
+      
+      const breakdown = `内訳:
+・基本料金: ${basePrice.toLocaleString()}円
+・追加料金: ${additionalUnitsCost.toLocaleString()}円
+・サイズアップ: ${sizeCostTotal.toLocaleString()}円
+・台座: ${baseOptionTotal.toLocaleString()}円
+・カラー追加: ${extraColorCost.toLocaleString()}円
+-----------------------
+合計金額: ${total.toLocaleString()}円`;
+      
+      return { total, breakdown };
+    }
+    
+    // ファイル選択・ドラッグ＆ドロップ処理
+    const fileInput = document.getElementById("fileInput");
+    const selectFileBtn = document.getElementById("selectFileBtn");
+    const uploadArea = document.getElementById("uploadArea");
+    
+    selectFileBtn.addEventListener("click", () => { fileInput.click(); });
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) processFile(file);
+    });
+    uploadArea.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      uploadArea.style.backgroundColor = "#e9e9e9";
+    });
+    uploadArea.addEventListener("dragleave", (event) => {
+      event.preventDefault();
+      uploadArea.style.backgroundColor = "#fafafa";
+    });
+    uploadArea.addEventListener("drop", (event) => {
+      event.preventDefault();
+      uploadArea.style.backgroundColor = "#fafafa";
+      const file = event.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+    
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const previewImg = document.getElementById("preview");
+        previewImg.src = e.target.result;
+        previewImg.style.display = "block";
+        previewImg.onload = async () => {
+          const processedCanvas = preprocessImage(previewImg);
+          const prediction = await model.predict(processedCanvas);
+          console.log("Prediction:", prediction);
+          let maxPred = prediction.reduce((prev, current) => (prev.probability > current.probability ? prev : current));
+          const plan = maxPred.className;
+          
+          const planImage = document.getElementById("planImage");
+          if (plan === "ライトプラン") {
+            planImage.src = "light-plan.png";
+          } else if (plan === "スタンダードプラン") {
+            planImage.src = "standard-plan.png";
+          } else if (plan === "プレミアムプラン") {
+            planImage.src = "premium-plan.png";
+          } else {
+            planImage.src = "";
+          }
+          
+          const selectedSize = document.getElementById("sizeSelect").value;
+          const selectedColor = parseInt(document.getElementById("colorSelect").value);
+          const orderCount = parseInt(document.getElementById("orderCountSelect").value);
+          const baseOption = document.querySelector('input[name="baseOption"]:checked').value;
+          
+          const priceResult = calculatePrice(plan, orderCount, selectedSize, selectedColor, baseOption);
+          
+          document.getElementById("modalImage").src = previewImg.src;
+          document.getElementById("resultText").innerText = plan;
+          if (typeof priceResult.total === "string") {
+            document.getElementById("priceResult").innerText = priceResult.total;
+          } else {
+            document.getElementById("priceResult").innerText = "見積もり合計金額: " + priceResult.total.toLocaleString() + "円";
+          }
+          
+          let copyContent = `プラン: ${plan}
+サイズ: ${selectedSize}
+カラー数: ${selectedColor}
+注文個数: ${orderCount}
+台座: ${baseOption}`;
+          if (typeof priceResult.total !== "string") {
+            copyContent += `
+
+${priceResult.breakdown}`;
+          }
+          document.getElementById("copyText").value = copyContent;
+          
+          document.getElementById("resultModal").style.display = "block";
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    // コピー処理
+    document.getElementById("copyButton").addEventListener("click", () => {
+      const copyText = document.getElementById("copyText");
+      copyText.select();
+      document.execCommand("copy");
+      alert("入力内容がコピーされました！");
+    });
+    
+    document.getElementById("closeModalBtn").addEventListener("click", () => {
+      document.getElementById("resultModal").style.display = "none";
+    });
+  </script>
+</body>
+</html>
