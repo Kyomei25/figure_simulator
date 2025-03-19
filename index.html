@@ -664,8 +664,11 @@ ${priceResult.breakdown}`;
           document.getElementById("copyText").value = copyContent;
           
           document.getElementById("resultModal").style.display = "block";
-          // ポップアップ表示時に、プラン画像にスライド（smooth scroll）する
+          // ポップアップ表示時に、プラン画像にスライドする（スマホ含む）
           document.getElementById("planImage").scrollIntoView({ behavior: "smooth" });
+          if(window.innerWidth < 600){
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
         };
       };
       reader.readAsDataURL(file);
