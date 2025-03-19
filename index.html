@@ -1,668 +1,616 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PIC&POLY Figure order 簡易見積もりサービス　β版</title>
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-  <!-- Teachable Machine Image ライブラリ -->
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>老後資金シミュレーター</title>
+  <!-- Chart.js の読み込み -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* FontAwesome読み込み */
-    @import url("https://use.fontawesome.com/releases/v5.13.0/css/all.css");
-
-    /* フォント読み込み（フォントファイルのパスは適宜変更してください） */
+    /* フォント設定：LINE Seed JP_TTF（TTFファイルは同一ディレクトリに配置してください） */
     @font-face {
-      font-family: 'line_seed_jp';
-      src: url('line_seed_jp.woff2') format('woff2'),
-           url('line_seed_jp.woff') format('woff');
-      font-weight: normal;
-      font-style: normal;
+      font-family: 'LINE Seed JP_TTF';
+      src: url('LINESeedJP_TTF.ttf') format('truetype');
     }
-    
-    /* 基本リセット・基本設定 */
     * { box-sizing: border-box; }
+    html { font-size: 16px; }
     body {
-      font-family: 'line_seed_jp', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f9f9f9;
-      line-height: 1.6;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      padding: 10px 20px;
-      background-color: #333;
-      color: #fff;
-    }
-    header img.logo {
-      width: 50px;
-      height: auto;
-      margin-right: 15px;
-    }
-    header h1 {
-      font-size: 1.2rem;
+      font-family: 'LINE Seed JP_TTF', sans-serif;
+      background-color: #ffffff;
+      padding: 20px;
+      color: #545454;
       margin: 0;
     }
-    /* PC表示時のコンテンツ余白（ヘッダー除く） */
-    @media (min-width: 1024px) {
-      .content-wrapper {
-        margin: 0 200px;
-      }
-      .input-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-      }
-      .input-row > div {
-        flex: 1;
-      }
+    /* PCビュー（768px以上） */
+    @media screen and (min-width: 769px) {
+      .pc-label { display: inline-block; }
+      .mobile-label { display: none; }
     }
-    /* トップ画像 */
-    #topImage {
-      width: 100%;
-      overflow: hidden;
+    /* スマホビュー（768px以下） */
+    @media screen and (max-width: 768px) {
+      .pc-label { display: none; }
+      .mobile-label { display: inline-block; }
     }
-    #topImage img {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-    /* 説明文 */
-    #explanation {
-      padding: 20px;
-      text-align: center;
-      background-color: #fff;
-    }
-    /* 注意事項 */
-    #caution {
-      border: 2px solid #f6be5a;
-      padding: 15px;
-      margin: 20px;
-      background-color: #fff;
-    }
-    #caution h2 {
-      margin-top: 0;
-      font-size: 1.1rem;
-    }
-    /* 追加オプションセクション */
-    #optionsSection {
-      padding: 20px;
-      background-color: #fff;
-      margin: 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    #optionsSection h2 {
-      margin-top: 0;
-    }
-    /* 入力エリア（サイズ、カラー数、注文個数）のコンテナ */
-    .input-row > div {
-      margin-bottom: 10px;
-    }
-    /* select要素の背景色・縁無し */
-    #sizeSelect, #colorSelect, #orderCountSelect {
-      background-color: #ffefd2;
-      border: none;
-      padding: 5px;
-    }
-    /* 台座ラジオボタンの画像を大きく（70pxに変更） */
-    #optionsSection label img {
-      width: 70px;
-      height: auto;
-      display: block;
-      margin: 0 auto;
-    }
-    /* 台座のラジオボタンの横幅を均一にする */
-    .base-option-label {
-      width: 150px;
-      text-align: center;
-    }
-    /* 画像アップロードセクション */
-    #uploadSection {
-      padding: 20px;
-      text-align: center;
-      background-color: #fff;
-      margin: 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .upload-header {
+    .container {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      margin-bottom: 10px;
+      gap: 20px;
+      padding: 0 10px;
     }
-    .upload-header img.upload-icon {
-      width: 30px;
-      height: auto;
-      margin-right: 8px;
-    }
-    #uploadArea {
-      border: 2px dashed #ccc;
-      border-radius: 5px;
+    /* カードスタイル（フラットデザイン） */
+    .results, .inputs {
+      width: 80%;
+      max-width: 800px;
       padding: 20px;
-      cursor: pointer;
-      background-color: #fafafa;
+      background-color: #ffffff;
     }
-    #uploadArea p {
-      margin: 10px 0;
-      font-size: 0.9rem;
-    }
-    /* 画像プレビュー：固定サイズ・中央配置 */
-    #previewSection {
+    /* STEPテキスト */
+    .step-container {
+      width: 80%;
+      max-width: 800px;
       text-align: center;
-      padding: 20px;
+      margin-bottom: 20px;
     }
-    #preview {
-      width: 300px;
-      height: 300px;
-      object-fit: contain;
-      border: 1px solid #ccc;
-      margin: 0 auto;
-      display: block;
-    }
-    /* モーダル（ポップアップ） */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0; top: 0;
-      width: 100%; height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background-color: #fff;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 90%;
-      max-width: 400px;
-      border-radius: 5px;
-      text-align: center;
-    }
-    /* 画像個別のサイズ調整 */
-    .modal-content img {
-      height: auto;
-      object-fit: cover;
-      margin-bottom: 15px;
-    }
-    /* 小さめのアップロード画像 */
-    #modalImage {
-      width: 40%;
-      max-width: 150px;
-    }
-    /* プラン画像は横幅ギリギリ */
-    #planImage {
-      width: 100%;
-      max-width: 100%;
-    }
-    #priceResult {
-      font-size: 1.5rem;
-      color: #e88d34;
-      margin: 15px 0;
-    }
-    /* 以下、オーダーするボタンのデザイン（修正後） */
-    .btn-wrap {
-      margin: 30px 0;
-    }
-    a.btn-c {
-      font-size: 1.6rem; 
-      position: relative;
-      padding: 0.5rem 1.5rem 1rem 1.5rem;
-      color: #fff;
-      background: #f6be5a;
-      box-shadow: 0 4px 0 #f2a32b;
-      text-decoration: none;
+    .step-indicator { display: inline-block; vertical-align: top; }
+    .step-image { width: 80px; height: auto; }
+    .step-description {
       display: inline-block;
+      margin-left: 10px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #00aaff;
+      position: relative;
+      margin-top: 20px;
+      padding-bottom: 4px;
     }
-    a.btn-c span {
-      font-size: 1.2rem;  /* 吹き出しテキストを小さく */
+    .step-description::after {
+      content: "";
       position: absolute;
-      top: -0.8rem;       /* 吹き出し位置 */
-      left: 50%;          /* 中央に配置 */
-      transform: translateX(-50%);
+      left: 0;
+      right: 0;
+      bottom: 8px;
+      height: 10px;
+      background-color: #ffeb3b;
+      z-index: -1;
+    }
+    /* 結果エリア */
+    .results { position: relative; }
+    /* 入力ラッパー */
+    .input-wrapper input[type="number"],
+    .input-wrapper select {
+      padding: 8px 100px 8px 8px;
+      border: none;
+      background-color: #e6f7ff;
+      border-radius: 0;
+      height: 40px;
+      box-sizing: border-box;
+      font-size: 16px;
+      color: #00aaff;
+    }
+    .input-wrapper input[type="number"]::-webkit-inner-spin-button,
+    .input-wrapper input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    /* PC用各入力固定幅 */
+    #retirement-start-age, #retirement-end-age { width: 200px; }
+    #final-assets, #operating-rate { width: 200px; }
+    #annual-rate-1, #withdrawal-1 { width: 200px; }
+    .chart-container { position: relative; margin-bottom: 10px; }
+    .input-overlay { margin-top: 20px; padding: 0 20px; }
+    .input-overlay .row { 
+      display: flex; 
+      width: 100%; 
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .first-row { justify-content: space-between; }
+    .left-item { text-align: left; flex: 1; }
+    .right-item { text-align: right; flex: 1; margin-left: 50px; }
+    .additional-row {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .additional-row .left-item, .additional-row .right-item { flex: 1; }
+    .additional-row .right-item { text-align: right; }
+    .full-item { flex: 1; width: 100%; }
+    /* 結果表示（動的更新） */
+    #result-display {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #009bdd;
+      text-align: center;
+    }
+    /* シミュレーション開始ボタン */
+    .c-button._shiny {
       display: block;
-      padding: 0.2rem 0.5rem;
-      width: 300px; /* この値を変更すると横幅が調整されます */
-      color: #f2a32b;
-      border: 2px solid #f2a32b;
-      border-radius: 100vh;
-      background: #fff;
-      box-shadow: 0 3px 3px rgba(0, 0, 0, 0.2);
-    }
-    a.btn-c span:before {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      content: "";
-      bottom: -6px;
-      border-width: 6px 6px 0 6px;
-      border-style: solid;
-      border-color: #f2a32b transparent transparent transparent;
-    }
-    a.btn-c span:after {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      content: "";
-      bottom: -4px;
-      border-width: 6px 6px 0 6px;
-      border-style: solid;
-      border-color: #fff transparent transparent transparent;
-    }
-    a.btn-c i {
-      margin-right: 0.5rem;
-    }
-    a.btn-c:hover {
-      transform: translateY(3px);
+      margin: 20px auto;
+      padding: 0.7em 1em;
+      background-color: #009bdd;
+      box-shadow: 0 2px 0 0 #0078b8;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 14px;
+      max-width: 500px;
       color: #fff;
-      background: #f6be5a;
-      box-shadow: 0 2px 0 #f2a32b;
+      text-align: center;
+      text-decoration: none;
+      overflow: hidden;
+      transition: 300ms;
+      position: relative;
     }
-    /* 「閉じる」ボタンの背景色変更 */
-    #closeModalBtn {
-      background-color: lightgray;
+    .c-button._shiny::before {
+      position: absolute;
+      content: '';
+      display: inline-block;
+      top: -180px;
+      left: 0;
+      width: 30px;
+      height: 100%;
+      background-color: #b5e7ff;
+      transition: 300ms;
+      animation: shinyshiny 2.5s ease-in-out infinite;
     }
-    /* コピーエリアのコンテナ：ボタン右寄せ */
-    #copyContainer {
-      margin-top: 15px;
-      text-align: right;
+    .c-button._shiny:hover {
+      text-decoration: none;
+      color: #fff;
+      box-shadow: none;
+      -webkit-transform: translateY(2px);
     }
-    /* コピーするボタンの背景色ライトグレー */
-    #copyButton {
-      background-color: lightgray;
+    @-webkit-keyframes shinyshiny {
+      0% { -webkit-transform: scale(0) rotate(45deg); opacity: 0; }
+      80% { -webkit-transform: scale(0) rotate(45deg); opacity: 0.5; }
+      81% { -webkit-transform: scale(4) rotate(45deg); opacity: 1; }
+      100% { -webkit-transform: scale(50) rotate(45deg); opacity: 0; }
     }
+    canvas { max-width: 100%; height: auto; }
     /* レスポンシブ */
-    @media (max-width: 600px) {
-      header h1 { font-size: 1rem; }
-      .upload-header { flex-direction: column; }
-      .content-wrapper {
-        margin: 0 10px;
+    @media screen and (max-width: 768px) {
+      .results, .inputs { width: 95%; padding: 15px; }
+      .input-overlay .row { flex-direction: column; gap: 10px; }
+      .left-item, .right-item { margin: 0; text-align: left; }
+      #retirement-start-age, #retirement-end-age, #final-assets, #operating-rate, #annual-rate-1, #withdrawal-1 {
+        width: 100px;
       }
+      .input-wrapper input[type="number"],
+      .input-wrapper select { padding: 8px 10px 8px 8px; }
+      .c-button._shiny { margin: 20px auto; }
+      body { line-height: 1.6; }
+      .step-image { width: 50px; }
+      .step-description { font-size: 18px; margin-left: 5px; }
+      .inputs .field-group input[type="number"],
+      .inputs .field-group select { width: 100%; }
+    }
+    .inputs h4 {
+      color: #009bdd;
+      margin: 10px 0 5px;
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+    .inputs p {
+      font-size: 0.9em;
+      color: #545454;
+      margin-bottom: 10px;
+    }
+    .inputs .field-group { margin-bottom: 10px; }
+    .inputs .field-group span.field-label {
+      display: inline-block;
+      width: 150px;
+    }
+    .inputs .field-group input[type="number"],
+    .inputs .field-group select {
+      background-color: #e6f7ff;
+      border: none;
+      padding: 8px;
+      font-size: 16px;
+      width: 100px;
+      color: #00aaff;
+    }
+    .inputs .field-group input[type="number"]::-webkit-inner-spin-button,
+    .inputs .field-group input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .inputs .field-group span.field-unit {
+      margin-left: 5px;
+      font-size: 16px;
+      color: #545454;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ddd;
+      margin: 15px 0;
     }
   </style>
 </head>
 <body>
-  <!-- ヘッダー -->
-  <header>
-    <img src="logo.png" alt="Logo" class="logo">
-    <h1>PIC&POLY Figure order 簡易見積もりサービス　β版</h1>
-  </header>
-  
-  <!-- ヘッダー以外のコンテンツ -->
-  <div class="content-wrapper">
-    <!-- トップ画像 -->
-    <section id="topImage">
-      <img src="top-image.jpg" alt="Top Image">
-    </section>
+  <div class="container">
+    <!-- タイトル -->
+    <img src="title.webp" alt="老後資金シミュレーター" style="width:100%; height:auto;">
     
-    <!-- 説明文 -->
-    <section id="explanation">
-      <p>
-        アップロードしたイラストを元にフィギュアオーダーの見積もりを<br>
-        自動で算出するサービスです。<br>
-        お気軽に画像をアップロードして、オーダーの参考にしてください。
-      </p>
-    </section>
+    <!-- STEP1：基本入力 -->
+    <div class="step-container step1">
+      <div class="step-indicator">
+        <img class="step-image" src="step1.png" alt="STEP 1">
+      </div>
+      <div class="step-description">基本的な項目を入力しよう</div>
+    </div>
     
-    <!-- 注意事項 -->
-    <section id="caution">
-      <h2>注意事項</h2>
-      <p>
-        ※本見積もりは概算です。実際のオーダー料金は、詳細な打ち合わせ後に決定いたします。<br>
-        ※アップロードされた画像は見積もり目的以外には使用いたしません。<br>
-        ※この解析AIはアップロードされたイラストを学習できないようになっているので、安心してご使用ください。
-      </p>
-    </section>
-    
-    <!-- 追加オプション入力 -->
-    <section id="optionsSection">
-      <h2>追加オプション</h2>
-      <!-- 入力エリアを1列にまとめるコンテナ -->
-      <div class="input-row">
-        <div>
-          <label for="sizeSelect">サイズ（mm）：</label>
-          <select id="sizeSelect">
-            <option value="40×40×40">40×40×40</option>
-            <option value="50×50×50">50×50×50</option>
-            <option value="60×60×60">60×60×60</option>
-            <option value="70×70×70">70×70×70</option>
-            <option value="80×80×80">80×80×80</option>
-            <option value="90×90×90">90×90×90</option>
-            <option value="100×100×100">100×100×100</option>
-          </select>
-        </div>
-        <div>
-          <label for="colorSelect">カラー数：</label>
-          <select id="colorSelect">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
-          </select>
-        </div>
-        <div>
-          <label for="orderCountSelect">注文個数：</label>
-          <select id="orderCountSelect">
-            <!-- 1～50をJSで動的に追加します -->
-          </select>
-        </div>
-      </div>
-      <div>
-        <label>台座の作成：</label>
-        <div style="display:flex; justify-content: center; gap: 10px;">
-          <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
-            <input type="radio" name="baseOption" value="なし" checked>
-            <br>
-            <img src="base_none.png" alt="なし">
-            なし（フィギュア本体のみ）
-          </label>
-          <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
-            <input type="radio" name="baseOption" value="ワンカラー台座">
-            <br>
-            <img src="base_onecolor.png" alt="ワンカラー台座">
-            ワンカラー台座
-          </label>
-          <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
-            <input type="radio" name="baseOption" value="デザイン台座">
-            <br>
-            <img src="base_design.png" alt="デザイン台座">
-            デザイン台座
-          </label>
-        </div>
-      </div>
-    </section>
-    
-    <!-- 画像アップロードセクション -->
-    <section id="uploadSection">
-      <div class="upload-header">
-        <img src="upload-icon.png" alt="Upload Icon" class="upload-icon">
-        <span>イラストをアップロードして見積もり</span>
-      </div>
-      <div id="uploadArea">
-        <p>ここに画像をドラッグ＆ドロップしてください</p>
-        <p>または、<button id="selectFileBtn">ファイルを選択してアップロード</button></p>
-        <p>対応可能なファイル形式：PNG, JPG, JPEG, GIF</p>
-        <!-- 非表示のファイル選択用 input -->
-        <input type="file" id="fileInput" accept="image/*" style="display:none;">
-      </div>
-    </section>
-    
-    <!-- 画像プレビュー -->
-    <section id="previewSection">
-      <img id="preview" style="display:none;" alt="Preview">
-    </section>
-  </div> <!-- .content-wrapper -->
-  
-  <!-- 結果表示用モーダル -->
-  <div id="resultModal" class="modal">
-    <div class="modal-content">
-      <!-- 画像配置入れ替え：先にplanImage、その後にmodalImage -->
-      <img id="planImage" src="" alt="Plan Image">
-      <img id="modalImage" src="" alt="Result Image">
-      <h3 id="resultText"></h3>
-      <div id="priceResult"></div>
-      <!-- 新規追加：下部にオーダーするボタンを追加 -->
-      <div class="btn-wrap">
-        <a href="" class="btn btn-c" id="orderBtn">
-          <span>診断結果から簡単オーダー！</span><br>
-          <i class="far fa-file-alt"></i>オーダーはこちら
-        </a>
-      </div>
-      <!-- コピー領域の追加（内訳・合計金額も含む） -->
-      <div id="copyContainer">
-        <textarea id="copyText" style="width:100%; height:140px;" readonly></textarea>
-        <button id="copyButton" class="btn">コピーする</button>
-      </div>
-      <p style="font-size:0.8rem; color: #666; text-align: center;">
-        ※こちらの金額は概算お見積もり金額となります。実際のオーダー時に金額が変更となる場合があります。
-      </p>
+    <!-- 結果エリア -->
+    <div class="results">
+      <p id="result-display">結果表示</p>
       
-      <br><br>
-      <button class="btn" id="closeModalBtn">閉じる</button>
+      <!-- グラフエリア -->
+      <div class="chart-container">
+        <canvas id="financial-chart" width="600" height="300"></canvas>
+        <script>
+          let retirementChart;
+          document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('financial-chart').getContext('2d');
+            const initialData = {
+              labels: ['初期'],
+              datasets: [{
+                label: '資産推移 (万円)',
+                data: [0],
+                backgroundColor: 'rgba(0, 155, 221, 0.2)',
+                borderColor: '#009bdd',
+                borderWidth: 1
+              }]
+            };
+            const chartOptions = { responsive: true, scales: { y: { beginAtZero: true } } };
+            retirementChart = new Chart(ctx, { type: 'bar', data: initialData, options: chartOptions });
+          });
+        </script>
+        <!-- 入力エリア（グラフ下部） -->
+        <div class="input-overlay">
+          <div class="row first-row">
+            <div class="left-item">
+              <label for="retirement-start-age">現在年齢</label>
+              <div class="input-wrapper">
+                <select id="retirement-start-age" required></select>
+                <span class="input-suffix">歳</span>
+              </div>
+            </div>
+            <div class="right-item">
+              <label for="retirement-end-age">老後開始年齢</label>
+              <div class="input-wrapper">
+                <select id="retirement-end-age" required></select>
+                <span class="input-suffix">歳</span>
+              </div>
+            </div>
+          </div>
+          <div class="row additional-row">
+            <div class="left-item">
+              <label for="withdrawal-1">積立月額</label>
+              <div class="input-wrapper">
+                <!-- 積立月額（パターン１の場合入力。想定利回りが未入力なら逆算対象） -->
+                <input type="number" id="withdrawal-1" placeholder="例：5">
+                <span class="input-suffix">万円/月</span>
+              </div>
+            </div>
+            <div class="right-item">
+              <label for="final-assets">老後開始時保有額</label>
+              <div class="input-wrapper">
+                <input type="number" id="final-assets" placeholder="例：100" required>
+                <span class="input-suffix">万円</span>
+              </div>
+            </div>
+          </div>
+          <!-- 運用金利 -->
+          <div class="row">
+            <div class="full-item">
+              <label for="operating-rate">運用金利</label><br class="desktop-only">
+              <div class="input-wrapper">
+                <input type="number" id="operating-rate" placeholder="例：3" required>
+                <span class="input-suffix">％</span>
+              </div>
+            </div>
+          </div>
+          <!-- 想定利回り（パターン２の場合入力。積立月額未入力なら逆算対象） -->
+          <div class="row">
+            <div class="full-item">
+              <label for="annual-rate-1">想定利回り</label><br class="desktop-only">
+              <div class="input-wrapper">
+                <input type="number" id="annual-rate-1" placeholder="例：5">
+                <span class="input-suffix">％</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- シミュレーション開始ボタン -->
+      <button id="calculate" class="c-button _shiny">シミュレーション開始</button>
+    </div>
+    
+    <!-- STEP2：その他オプション -->
+    <div class="step-container step2">
+      <div class="step-indicator">
+        <img class="step-image" src="step2.png" alt="STEP 2">
+      </div>
+      <div class="step-description">その他の項目（オプション）は下記へ</div>
+    </div>
+    
+    <!-- オプション入力エリア -->
+    <div class="inputs">
+      <!-- 金利・積立額の変更 -->
+      <h4>金利・積立額の変更</h4>
+      <div class="field-group">
+        <span class="field-label">変更する年齢</span>
+        <select id="change-age" class="card-input"></select>
+        <span class="field-unit">歳</span>
+      </div>
+      <div class="field-group">
+        <span class="field-label">変更後の積立月額</span>
+        <input type="number" id="new-withdrawal" class="card-input" placeholder="例：10">
+        <span class="field-unit">万円</span>
+      </div>
+      <div class="field-group">
+        <span class="field-label">想定年利</span>
+        <input type="number" id="new-annual-rate" class="card-input" placeholder="例：5">
+        <span class="field-unit">％</span>
+      </div>
+      <hr>
+      <!-- 一括投資（既存項目） -->
+      <h4>一括投資</h4>
+      <p>一括投資とは、指定した年齢で一括で投資する方法です。</p>
+      <div class="field-group">
+        <span class="field-label">年齢</span>
+        <select id="lump-investment-age" class="card-input"></select>
+        <span class="field-unit">歳</span>
+      </div>
+      <div class="field-group">
+        <span class="field-label">金額</span>
+        <input type="number" id="lump-investment-amount" class="card-input" placeholder="例：50">
+        <span class="field-unit">万円</span>
+      </div>
+      <!-- 追加の一括投資項目 -->
+      <h4>一括投資</h4>
+      <p>一括投資（追加）：指定した年齢で一括で投資する方法です。</p>
+      <div class="field-group">
+        <span class="field-label">年齢</span>
+        <select id="lump-investment2-age" class="card-input"></select>
+        <span class="field-unit">歳</span>
+      </div>
+      <div class="field-group">
+        <span class="field-label">金額</span>
+        <input type="number" id="lump-investment2-amount" class="card-input" placeholder="例：50">
+        <span class="field-unit">万円</span>
+      </div>
+      <button id="calculate2" class="c-button _shiny">シミュレーション開始</button>
     </div>
   </div>
   
-  <!-- スクリプト -->
-  <script type="module">
-    // キャッシュバスティング用タイムスタンプ
-    const timestamp = new Date().getTime();
-    const modelURL = `./tm_model/model.json?v=${timestamp}`;
-    const metadataURL = `./tm_model/metadata.json?v=${timestamp}`;
-    let model;
-    const MODEL_WIDTH = 224;  // 学習時のサイズ
-    const MODEL_HEIGHT = 224;
-    
-    // 注文個数のセレクトに1～50を追加
-    const orderCountSelect = document.getElementById("orderCountSelect");
-    for (let i = 1; i <= 50; i++) {
-      const option = document.createElement("option");
-      option.value = i;
-      option.text = i;
-      orderCountSelect.appendChild(option);
-    }
-    
-    // モデルロード関数
-    async function loadModel() {
-      model = await tmImage.load(modelURL, metadataURL);
-      console.log("モデルがロードされました");
-    }
-    await loadModel();
-    
-    // 画像の前処理：オフスクリーンキャンバスでリサイズ
-    function preprocessImage(imageElement) {
-      const canvas = document.createElement("canvas");
-      canvas.width = MODEL_WIDTH;
-      canvas.height = MODEL_HEIGHT;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(imageElement, 0, 0, MODEL_WIDTH, MODEL_HEIGHT);
-      return canvas;
-    }
-    
-    // 料金計算用定数・関数
-    const basePrices = {
-      "ライトプラン": 9000,
-      "スタンダードプラン": 15000,
-      "プレミアムプラン": 25000
-    };
-    
-    const sizeCosts = {
-      "ライトプラン": {
-        "40×40×40": 0,
-        "50×50×50": 0,
-        "60×60×60": 500,
-        "70×70×70": 800,
-        "80×80×80": 1000,
-        "90×90×90": 1300,
-        "100×100×100": 1500
-      },
-      "スタンダードプラン": {
-        "40×40×40": "制作不可",
-        "50×50×50": 0,
-        "60×60×60": 0,
-        "70×70×70": 300,
-        "80×80×80": 1000,
-        "90×90×90": 1300,
-        "100×100×100": 1500
-      },
-      "プレミアムプラン": {
-        "40×40×40": "制作不可",
-        "50×50×50": 0,
-        "60×60×60": 0,
-        "70×70×70": 0,
-        "80×80×80": 500,
-        "90×90×90": 1300,
-        "100×100×100": 1500
+  <script>
+    // ドロップダウンのオプション生成（16～120）
+    document.addEventListener('DOMContentLoaded', function() {
+      function populateSelect(selectId, defaultVal) {
+        var selectElem = document.getElementById(selectId);
+        for (var i = 16; i <= 120; i++) {
+          var option = document.createElement("option");
+          option.value = i;
+          option.textContent = i;
+          if (defaultVal !== undefined && i === defaultVal) {
+            option.selected = true;
+          }
+          selectElem.appendChild(option);
+        }
       }
-    };
-    
-    function getUnitPrice(plan, orderCount) {
-      if (orderCount >= 2 && orderCount <= 5) {
-        if (plan === "ライトプラン") return 3000;
-        if (plan === "スタンダードプラン") return 5000;
-        if (plan === "プレミアムプラン") return 7000;
-      } else if (orderCount >= 6 && orderCount <= 9) {
-        if (plan === "ライトプラン") return 2600;
-        if (plan === "スタンダードプラン") return 4500;
-        if (plan === "プレミアムプラン") return 6500;
-      } else if (orderCount >= 10 && orderCount <= 19) {
-        if (plan === "ライトプラン") return 2500;
-        if (plan === "スタンダードプラン") return 4300;
-        if (plan === "プレミアムプラン") return 6300;
-      } else if (orderCount >= 20 && orderCount <= 29) {
-        if (plan === "ライトプラン") return 2400;
-        if (plan === "スタンダードプラン") return 3900;
-        if (plan === "プレミアムプラン") return 5800;
-      } else if (orderCount >= 30 && orderCount <= 39) {
-        if (plan === "ライトプラン") return 2300;
-        if (plan === "スタンダードプラン") return 3800;
-        if (plan === "プレミアムプラン") return 5600;
-      } else if (orderCount >= 40 && orderCount <= 50) {
-        if (plan === "ライトプラン") return 2100;
-        if (plan === "スタンダードプラン") return 3600;
-        if (plan === "プレミアムプラン") return 5400;
-      }
-      return 0;
-    }
-    
-    function calculatePrice(plan, orderCount, selectedSize, colorCount, baseOption) {
-      const basePrice = basePrices[plan];
-      const unitPrice = getUnitPrice(plan, orderCount);
-      const sizeOption = sizeCosts[plan][selectedSize];
-      if (sizeOption === "制作不可") {
-        return { total: "選択されたサイズは制作不可です。", breakdown: "" };
-      }
-      let extraColorCost = 0;
-      if (plan === "ライトプラン") {
-        if (colorCount > 3) extraColorCost = (colorCount - 3) * 1500;
-      } else {
-        if (colorCount > 4) extraColorCost = (colorCount - 4) * 1500;
-      }
-      let baseOptionCost = 0;
-      if (baseOption === "ワンカラー台座") baseOptionCost = 300;
-      else if (baseOption === "デザイン台座") baseOptionCost = 500;
-      
-      const additionalUnitsCost = (orderCount - 1) * unitPrice;
-      const sizeCostTotal = sizeOption * orderCount;
-      const baseOptionTotal = baseOptionCost * orderCount;
-      
-      const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal + extraColorCost;
-      
-      const breakdown = `内訳:
-・基本料金: ${basePrice.toLocaleString()}円
-・追加料金: ${additionalUnitsCost.toLocaleString()}円
-・サイズアップ: ${sizeCostTotal.toLocaleString()}円
-・台座: ${baseOptionTotal.toLocaleString()}円
-・カラー追加: ${extraColorCost.toLocaleString()}円
------------------------
-合計金額: ${total.toLocaleString()}円`;
-      
-      return { total, breakdown };
-    }
-    
-    // ファイル選択・ドラッグ＆ドロップ処理
-    const fileInput = document.getElementById("fileInput");
-    const selectFileBtn = document.getElementById("selectFileBtn");
-    const uploadArea = document.getElementById("uploadArea");
-    
-    selectFileBtn.addEventListener("click", () => { fileInput.click(); });
-    fileInput.addEventListener("change", (event) => {
-      const file = event.target.files[0];
-      if (file) processFile(file);
-    });
-    uploadArea.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      uploadArea.style.backgroundColor = "#e9e9e9";
-    });
-    uploadArea.addEventListener("dragleave", (event) => {
-      event.preventDefault();
-      uploadArea.style.backgroundColor = "#fafafa";
-    });
-    uploadArea.addEventListener("drop", (event) => {
-      event.preventDefault();
-      uploadArea.style.backgroundColor = "#fafafa";
-      const file = event.dataTransfer.files[0];
-      if (file) processFile(file);
+      populateSelect("retirement-start-age", 35);
+      populateSelect("retirement-end-age", 60);
+      populateSelect("change-age", 50);
+      populateSelect("lump-investment-age", 60);
+      populateSelect("lump-investment2-age", 60);
     });
     
-    function processFile(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const previewImg = document.getElementById("preview");
-        previewImg.src = e.target.result;
-        previewImg.style.display = "block";
-        previewImg.onload = async () => {
-          const processedCanvas = preprocessImage(previewImg);
-          const prediction = await model.predict(processedCanvas);
-          console.log("Prediction:", prediction);
-          let maxPred = prediction.reduce((prev, current) => (prev.probability > current.probability ? prev : current));
-          const plan = maxPred.className;
-          
-          const planImage = document.getElementById("planImage");
-          if (plan === "ライトプラン") {
-            planImage.src = "light-plan.png";
-          } else if (plan === "スタンダードプラン") {
-            planImage.src = "standard-plan.png";
-          } else if (plan === "プレミアムプラン") {
-            planImage.src = "premium-plan.png";
+    // 前向きシミュレーション関数
+    // depositBase, rateBase: 変更前の積立額・年率
+    // depositNew, rateNew: 変更後の積立額・年率
+    // switchingMonth: 変更する年齢（月数換算）
+    // totalMonths: 全期間の月数
+    // lumpMonth1, lumpAmt1, lumpMonth2, lumpAmt2: 一括投資の実施月と金額（各項目）
+    function simulate(depositBase, rateBase, depositNew, rateNew, switchingMonth, totalMonths, lumpMonth1, lumpAmt1, lumpMonth2, lumpAmt2) {
+      var asset = 0;
+      for (var m = 0; m < totalMonths; m++) {
+        // 一括投資の追加（既存項目）
+        if (!isNaN(lumpMonth1) && m === lumpMonth1) {
+          asset += lumpAmt1;
+        }
+        // 一括投資の追加（追加項目）
+        if (!isNaN(lumpMonth2) && m === lumpMonth2) {
+          asset += lumpAmt2;
+        }
+        var currentMonthlyRate, currentDeposit;
+        if (m < switchingMonth) {
+          currentMonthlyRate = (rateBase / 100) / 12;
+          currentDeposit = depositBase;
+        } else {
+          currentMonthlyRate = (rateNew / 100) / 12;
+          currentDeposit = depositNew;
+        }
+        asset = asset * (1 + currentMonthlyRate) + currentDeposit;
+      }
+      return asset;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      function runSimulation() {
+        // 必須入力項目
+        var currentAge = parseFloat(document.getElementById("retirement-start-age").value);
+        var retirementAge = parseFloat(document.getElementById("retirement-end-age").value);
+        var finalAssets = parseFloat(document.getElementById("final-assets").value);
+        var operatingRate = parseFloat(document.getElementById("operating-rate").value);
+        if (isNaN(currentAge) || isNaN(retirementAge) || isNaN(finalAssets) || isNaN(operatingRate)) {
+          alert("必須項目（現在年齢、老後開始年齢、老後開始時保有額、運用金利）を正しく入力してください。");
+          return;
+        }
+        if (retirementAge <= currentAge) {
+          alert("老後開始年齢は現在年齢より大きくなければなりません。");
+          return;
+        }
+        var totalMonths = (retirementAge - currentAge) * 12;
+        
+        // 金利・積立額変更の入力取得（任意）
+        var changeAgeStr = document.getElementById("change-age").value;
+        var newWithdrawalStr = document.getElementById("new-withdrawal").value;
+        var newAnnualRateStr = document.getElementById("new-annual-rate").value;
+        var switchingMonth = totalMonths; // 変更なしの場合
+        if(changeAgeStr !== "" && !isNaN(parseFloat(changeAgeStr))) {
+          var changeAge = parseFloat(changeAgeStr);
+          switchingMonth = Math.round((changeAge - currentAge) * 12);
+          if(switchingMonth < 0) switchingMonth = 0;
+          if(switchingMonth > totalMonths) switchingMonth = totalMonths;
+        }
+        
+        // 一括投資の入力取得（既存項目）
+        var lumpAge1Str = document.getElementById("lump-investment-age").value;
+        var lumpAmount1Str = document.getElementById("lump-investment-amount").value;
+        var lumpMonth1 = NaN, lumpAmt1 = 0;
+        if(lumpAge1Str !== "" && !isNaN(parseFloat(lumpAge1Str)) &&
+           lumpAmount1Str !== "" && !isNaN(parseFloat(lumpAmount1Str))) {
+          lumpMonth1 = Math.round((parseFloat(lumpAge1Str) - currentAge) * 12);
+          lumpAmt1 = parseFloat(lumpAmount1Str);
+        }
+        // 一括投資の入力取得（追加項目）
+        var lumpAge2Str = document.getElementById("lump-investment2-age").value;
+        var lumpAmount2Str = document.getElementById("lump-investment2-amount").value;
+        var lumpMonth2 = NaN, lumpAmt2 = 0;
+        if(lumpAge2Str !== "" && !isNaN(parseFloat(lumpAge2Str)) &&
+           lumpAmount2Str !== "" && !isNaN(parseFloat(lumpAmount2Str))) {
+          lumpMonth2 = Math.round((parseFloat(lumpAge2Str) - currentAge) * 12);
+          lumpAmt2 = parseFloat(lumpAmount2Str);
+        }
+        
+        // 積立月額と想定利回りの入力状況チェック（どちらか一方のみ入力）
+        var depositStr = document.getElementById("withdrawal-1").value;
+        var rateStr = document.getElementById("annual-rate-1").value;
+        var depositProvided = (depositStr !== "" && !isNaN(parseFloat(depositStr)));
+        var rateProvided = (rateStr !== "" && !isNaN(parseFloat(rateStr)));
+        if(depositProvided && rateProvided) {
+          alert("積立月額と想定利回りのどちらか一方のみ入力してください。");
+          return;
+        }
+        if(!depositProvided && !rateProvided) {
+          alert("積立月額か想定利回りのどちらか一方を入力してください。");
+          return;
+        }
+        
+        var computedValue, resultLabel;
+        if (depositProvided) {
+          // パターン１：積立月額が入力されている場合 → 想定利回り（実効年率）を逆算
+          var depositBase = parseFloat(depositStr);
+          // 変更後の積立額：入力があればそれを使用、なければ変更前と同じ
+          var depositNewCandidate = (newWithdrawalStr !== "" && !isNaN(parseFloat(newWithdrawalStr))) ? parseFloat(newWithdrawalStr) : depositBase;
+          // 変更後の年率：入力があればそれを使用、なければ effective rate は運用金利＋δ
+          function getRateNew(delta) {
+            if(newAnnualRateStr !== "" && !isNaN(parseFloat(newAnnualRateStr))) {
+              return parseFloat(newAnnualRateStr);
+            } else {
+              return operatingRate + delta;
+            }
+          }
+          // 目標となる最終資産になるよう、simulate関数を用いて f(δ)=simulate(…)−finalAssets=0 を解く
+          function f(delta) {
+            return simulate(depositBase, operatingRate + delta, depositNewCandidate, getRateNew(delta), switchingMonth, totalMonths, lumpMonth1, lumpAmt1, lumpMonth2, lumpAmt2) - finalAssets;
+          }
+          var f0 = f(0);
+          var low, high;
+          if (f0 >= 0) { low = -50; high = 0; }
+          else { low = 0; high = 50; }
+          var delta;
+          for (var i = 0; i < 50; i++) {
+            delta = (low + high) / 2;
+            var fmid = f(delta);
+            if (Math.abs(fmid) < 1e-6) { break; }
+            if (fmid > 0) { high = delta; } else { low = delta; }
+          }
+          var effectiveRate = operatingRate + delta;
+          computedValue = effectiveRate;
+          resultLabel = "想定利回り";
+        } else if (rateProvided) {
+          // パターン２：想定利回りが入力されている場合 → 必要な積立月額を逆算
+          var targetRate = parseFloat(rateStr);
+          function getDepositNew(deposit) {
+            if(newWithdrawalStr !== "" && !isNaN(parseFloat(newWithdrawalStr))) {
+              return parseFloat(newWithdrawalStr);
+            } else {
+              return deposit;
+            }
+          }
+          var newRateCandidate = (newAnnualRateStr !== "" && !isNaN(parseFloat(newAnnualRateStr))) ? parseFloat(newAnnualRateStr) : targetRate;
+          function g(deposit) {
+            return simulate(deposit, targetRate, getDepositNew(deposit), newRateCandidate, switchingMonth, totalMonths, lumpMonth1, lumpAmt1, lumpMonth2, lumpAmt2) - finalAssets;
+          }
+          var lowDeposit = 0, highDeposit = 1;
+          while(g(highDeposit) < 0) { highDeposit *= 2; if(highDeposit > 1e9) break; }
+          var depositValue;
+          for (var i = 0; i < 50; i++) {
+            depositValue = (lowDeposit + highDeposit) / 2;
+            var gmid = g(depositValue);
+            if (Math.abs(gmid) < 1e-6) { break; }
+            if (gmid < 0) { lowDeposit = depositValue; } else { highDeposit = depositValue; }
+          }
+          computedValue = depositValue;
+          resultLabel = "積立月額";
+        }
+        
+        // 結果表示更新
+        document.getElementById("result-display").innerHTML =
+          resultLabel + ": <span id='required-amount'>" + computedValue.toFixed(2) + "</span>" +
+          (resultLabel === "想定利回り" ? "％" : "万円/月");
+        
+        // 前向きシミュレーションによるグラフ更新
+        var asset = 0;
+        var simulationLabels = [];
+        var simulationData = [];
+        var baseDeposit, baseRate, newDeposit, newRate;
+        if (depositProvided) {
+          baseDeposit = depositBase;
+          baseRate = computedValue; // effective rate（逆算結果）
+          newDeposit = (newWithdrawalStr !== "" && !isNaN(parseFloat(newWithdrawalStr))) ? parseFloat(newWithdrawalStr) : baseDeposit;
+          newRate = (newAnnualRateStr !== "" && !isNaN(parseFloat(newAnnualRateStr))) ? parseFloat(newAnnualRateStr) : baseRate;
+        } else {
+          baseDeposit = computedValue;
+          baseRate = targetRate;
+          newDeposit = (newWithdrawalStr !== "" && !isNaN(parseFloat(newWithdrawalStr))) ? parseFloat(newWithdrawalStr) : baseDeposit;
+          newRate = (newAnnualRateStr !== "" && !isNaN(parseFloat(newAnnualRateStr))) ? parseFloat(newAnnualRateStr) : baseRate;
+        }
+        var monthlyRate;
+        for (var m = 0; m <= totalMonths; m++) {
+          if (m < switchingMonth) {
+            monthlyRate = (baseRate / 100) / 12;
+            asset = asset * (1 + monthlyRate) + baseDeposit;
           } else {
-            planImage.src = "";
+            monthlyRate = (newRate / 100) / 12;
+            asset = asset * (1 + monthlyRate) + newDeposit;
           }
-          
-          const selectedSize = document.getElementById("sizeSelect").value;
-          const selectedColor = parseInt(document.getElementById("colorSelect").value);
-          const orderCount = parseInt(document.getElementById("orderCountSelect").value);
-          const baseOption = document.querySelector('input[name="baseOption"]:checked').value;
-          
-          const priceResult = calculatePrice(plan, orderCount, selectedSize, selectedColor, baseOption);
-          
-          document.getElementById("modalImage").src = previewImg.src;
-          document.getElementById("resultText").innerText = plan;
-          if (typeof priceResult.total === "string") {
-            document.getElementById("priceResult").innerText = priceResult.total;
-          } else {
-            document.getElementById("priceResult").innerText = "見積もり合計金額: " + priceResult.total.toLocaleString() + "円";
+          // 一括投資（既存項目）
+          if (!isNaN(lumpMonth1) && m === lumpMonth1) {
+            asset += lumpAmt1;
           }
-          
-          let copyContent = `プラン: ${plan}
-サイズ: ${selectedSize}
-カラー数: ${selectedColor}
-注文個数: ${orderCount}
-台座: ${baseOption}`;
-          if (typeof priceResult.total !== "string") {
-            copyContent += `
-
-${priceResult.breakdown}`;
+          // 一括投資（追加項目）
+          if (!isNaN(lumpMonth2) && m === lumpMonth2) {
+            asset += lumpAmt2;
           }
-          document.getElementById("copyText").value = copyContent;
-          
-          document.getElementById("resultModal").style.display = "block";
-        };
-      };
-      reader.readAsDataURL(file);
-    }
-    
-    // コピー処理
-    document.getElementById("copyButton").addEventListener("click", () => {
-      const copyText = document.getElementById("copyText");
-      copyText.select();
-      document.execCommand("copy");
-      alert("入力内容がコピーされました！");
-    });
-    
-    document.getElementById("closeModalBtn").addEventListener("click", () => {
-      document.getElementById("resultModal").style.display = "none";
+          if (m % 12 === 0) {
+            simulationLabels.push((currentAge + m/12) + "歳");
+            simulationData.push(parseFloat(asset.toFixed(2)));
+          }
+        }
+        retirementChart.data.labels = simulationLabels;
+        retirementChart.data.datasets[0].data = simulationData;
+        retirementChart.update();
+        
+        document.querySelector(".results").scrollIntoView({ behavior: 'smooth' });
+      }
+      
+      document.getElementById("calculate").addEventListener("click", runSimulation);
+      document.getElementById("calculate2").addEventListener("click", runSimulation);
     });
   </script>
+  
 </body>
 </html>
