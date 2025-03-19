@@ -441,7 +441,7 @@
         <textarea id="copyText" style="width:100%; height:140px;" readonly></textarea>
         <button id="copyButton" class="btn">コピーする</button>
       </div>
-      <!-- 新規追加：コピーエリア下に注意文を追加 -->
+      <!-- コピーエリア下の注意文 -->
       <p style="font-size:0.8rem; color: #666; text-align: center;">
         ※こちらの金額は概算お見積もり金額となります。実際のオーダー時に金額が変更となる場合があります。
       </p>
@@ -664,6 +664,8 @@ ${priceResult.breakdown}`;
           document.getElementById("copyText").value = copyContent;
           
           document.getElementById("resultModal").style.display = "block";
+          // ポップアップ表示時に、プラン画像にスライド（smooth scroll）する
+          document.getElementById("planImage").scrollIntoView({ behavior: "smooth" });
         };
       };
       reader.readAsDataURL(file);
