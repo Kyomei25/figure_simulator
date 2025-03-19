@@ -196,6 +196,8 @@
       max-width: 400px;
       border-radius: 5px;
       text-align: center;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     /* 画像個別のサイズ調整 */
     .modal-content img {
@@ -664,8 +666,10 @@ ${priceResult.breakdown}`;
           document.getElementById("copyText").value = copyContent;
           
           document.getElementById("resultModal").style.display = "block";
-          // ポップアップ表示時に、プラン画像の先頭に自動でスライドする
-          document.getElementById("planImage").scrollIntoView({ behavior: "smooth", block: "start" });
+          // モーダル表示後、少し待ってからプラン画像へスライドする（スマホ/PC問わず）
+          setTimeout(() => {
+            document.getElementById("planImage").scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 100);
         };
       };
       reader.readAsDataURL(file);
