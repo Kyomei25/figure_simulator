@@ -488,7 +488,7 @@
       return canvas;
     }
     
-    // 料金計算用定数・関数
+    // 既存の料金定数
     const basePrices = {
       "ライトプラン": 9000,
       "スタンダードプラン": 15000,
@@ -525,6 +525,7 @@
       }
     };
     
+    // 既存の単体料金（複数カラー用）算出関数
     function getUnitPrice(plan, orderCount) {
       if (orderCount >= 2 && orderCount <= 5) {
         if (plan === "ライトプラン") return 3000;
@@ -554,30 +555,96 @@
       return 0;
     }
     
+    // ここから新規追加：カラー数が1（単色）の場合の料金定数と単体料金算出関数
+    const basePricesMono = {
+      "ライトプラン": 7500,
+      "スタンダードプラン": 13000,
+      "プレミアムプラン": 23800
+    };
+    
+    function getUnitPriceMono(plan, orderCount) {
+      if (orderCount >= 2 && orderCount <= 5) {
+        if (plan === "ライトプラン") return 2500;
+        if (plan === "スタンダードプラン") return 4500;
+        if (plan === "プレミアムプラン") return 6000;
+      } else if (orderCount >= 6 && orderCount <= 9) {
+        if (plan === "ライトプラン") return 2300;
+        if (plan === "スタンダードプラン") return 4000;
+        if (plan === "プレミアムプラン") return 5500;
+      } else if (orderCount >= 10 && orderCount <= 19) {
+        if (plan === "ライトプラン") return 2000;
+        if (plan === "スタンダードプラン") return 3500;
+        if (plan === "プレミアムプラン") return 5300;
+      } else if (orderCount >= 20 && orderCount <= 29) {
+        if (plan === "ライトプラン") return 1900;
+        if (plan === "スタンダードプラン") return 3000;
+        if (plan === "プレミアムプラン") return 4800;
+      } else if (orderCount >= 30 && orderCount <= 39) {
+        if (plan === "ライトプラン") return 1800;
+        if (plan === "スタンダードプラン") return 2900;
+        if (plan === "プレミアムプラン") return 4600;
+      } else if (orderCount >= 40 && orderCount <= 50) {
+        if (plan === "ライトプラン") return 1700;
+        if (plan === "スタンダードプラン") return 2800;
+        if (plan === "プレミアムプラン") return 4400;
+      }
+      return 0;
+    }
+    
+    // 料金計算関数
     function calculatePrice(plan, orderCount, selectedSize, colorCount, baseOption) {
-      const basePrice = basePrices[plan];
-      const unitPrice = getUnitPrice(plan, orderCount);
-      const sizeOption = sizeCosts[plan][selectedSize];
-      if (sizeOption === "制作不可") {
-        return { total: "選択されたサイズは制作不可です。", breakdown: "" };
-      }
-      let extraColorCost = 0;
-      if (plan === "ライトプラン") {
-        if (colorCount > 3) extraColorCost = (colorCount - 3) * 1500;
+      // カラー数が1の場合は単色料金で計算
+      if (colorCount === 1) {
+        const basePrice = basePricesMono[plan];
+        const unitPrice = getUnitPriceMono(plan, orderCount);
+        const sizeOption = sizeCosts[plan][selectedSize];
+        if (sizeOption === "制作不可") {
+          return { total: "選択されたサイズは制作不可です。", breakdown: "" };
+        }
+        let baseOptionCost = 0;
+        if (baseOption === "ワンカラー台座") baseOptionCost = 300;
+        else if (baseOption === "デザイン台座") baseOptionCost = 500;
+        
+        const additionalUnitsCost = (orderCount - 1) * unitPrice;
+        const sizeCostTotal = sizeOption * orderCount;
+        const baseOptionTotal = baseOptionCost * orderCount;
+        
+        const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal;
+        
+        const breakdown = `内訳:
+・基本料金: ${basePrice.toLocaleString()}円
+・追加料金: ${additionalUnitsCost.toLocaleString()}円
+・サイズアップ: ${sizeCostTotal.toLocaleString()}円
+・台座: ${baseOptionTotal.toLocaleString()}円
+-----------------------
+合計金額: ${total.toLocaleString()}円`;
+        
+        return { total, breakdown };
       } else {
-        if (colorCount > 4) extraColorCost = (colorCount - 4) * 1500;
-      }
-      let baseOptionCost = 0;
-      if (baseOption === "ワンカラー台座") baseOptionCost = 300;
-      else if (baseOption === "デザイン台座") baseOptionCost = 500;
-      
-      const additionalUnitsCost = (orderCount - 1) * unitPrice;
-      const sizeCostTotal = sizeOption * orderCount;
-      const baseOptionTotal = baseOptionCost * orderCount;
-      
-      const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal + extraColorCost;
-      
-      const breakdown = `内訳:
+        // カラー数が1以外の場合（既存の料金プラン）
+        const basePrice = basePrices[plan];
+        const unitPrice = getUnitPrice(plan, orderCount);
+        const sizeOption = sizeCosts[plan][selectedSize];
+        if (sizeOption === "制作不可") {
+          return { total: "選択されたサイズは制作不可です。", breakdown: "" };
+        }
+        let extraColorCost = 0;
+        if (plan === "ライトプラン") {
+          if (colorCount > 3) extraColorCost = (colorCount - 3) * 1500;
+        } else {
+          if (colorCount > 4) extraColorCost = (colorCount - 4) * 1500;
+        }
+        let baseOptionCost = 0;
+        if (baseOption === "ワンカラー台座") baseOptionCost = 300;
+        else if (baseOption === "デザイン台座") baseOptionCost = 500;
+        
+        const additionalUnitsCost = (orderCount - 1) * unitPrice;
+        const sizeCostTotal = sizeOption * orderCount;
+        const baseOptionTotal = baseOptionCost * orderCount;
+        
+        const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal + extraColorCost;
+        
+        const breakdown = `内訳:
 ・基本料金: ${basePrice.toLocaleString()}円
 ・追加料金: ${additionalUnitsCost.toLocaleString()}円
 ・サイズアップ: ${sizeCostTotal.toLocaleString()}円
@@ -585,8 +652,9 @@
 ・カラー追加: ${extraColorCost.toLocaleString()}円
 -----------------------
 合計金額: ${total.toLocaleString()}円`;
-      
-      return { total, breakdown };
+        
+        return { total, breakdown };
+      }
     }
     
     // ファイル選択・ドラッグ＆ドロップ処理
@@ -643,10 +711,16 @@
           const orderCount = parseInt(document.getElementById("orderCountSelect").value);
           const baseOption = document.querySelector('input[name="baseOption"]:checked').value;
           
+          // カラー数が1の場合、診断結果のプラン名に「（単色造形）」を追加
+          let displayPlan = plan;
+          if (selectedColor === 1) {
+            displayPlan += "（単色造形）";
+          }
+          document.getElementById("resultText").innerText = displayPlan;
+          
           const priceResult = calculatePrice(plan, orderCount, selectedSize, selectedColor, baseOption);
           
           document.getElementById("modalImage").src = previewImg.src;
-          document.getElementById("resultText").innerText = plan;
           if (typeof priceResult.total === "string") {
             document.getElementById("priceResult").innerText = priceResult.total;
           } else {
