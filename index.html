@@ -198,6 +198,7 @@
       text-align: center;
       max-height: 90vh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     /* 画像個別のサイズ調整 */
     .modal-content img {
@@ -437,7 +438,6 @@
           <span>診断結果から簡単オーダー！</span><br>
           <i class="far fa-file-alt"></i>オーダーはこちら
         </a>
-        
       </div>
       <!-- コピー領域の追加（内訳・合計金額も含む） -->
       <div id="copyContainer">
@@ -698,14 +698,14 @@
           
           const planImage = document.getElementById("planImage");
           if (plan === "ライトプラン") {
-  planImage.src = "light-plan.webp";
-} else if (plan === "スタンダードプラン") {
-  planImage.src = "standard-plan.webp";
-} else if (plan === "プレミアムプラン") {
-  planImage.src = "premium-plan.webp";
-} else {
-  planImage.src = "";
-}
+            planImage.src = "light-plan.webp";
+          } else if (plan === "スタンダードプラン") {
+            planImage.src = "standard-plan.webp";
+          } else if (plan === "プレミアムプラン") {
+            planImage.src = "premium-plan.webp";
+          } else {
+            planImage.src = "";
+          }
           
           const selectedSize = document.getElementById("sizeSelect").value;
           const selectedColor = parseInt(document.getElementById("colorSelect").value);
