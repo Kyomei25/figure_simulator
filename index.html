@@ -316,7 +316,7 @@
   <div class="content-wrapper">
     <!-- トップ画像 -->
     <section id="topImage">
-      <img src="top-image.jpg" alt="Top Image">
+      <img src="top-image.webp" alt="Top Image">
     </section>
     
     <!-- 説明文 -->
@@ -389,13 +389,13 @@
           <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
             <input type="radio" name="baseOption" value="ワンカラー台座">
             <br>
-            <img src="base_onecolor.png" alt="ワンカラー台座">
+            <img src="base_onecolor.webp" alt="ワンカラー台座">
             ワンカラー台座<br>＋300円/体
           </label>
           <label class="base-option-label" style="border:1px solid #ccc; padding:10px; border-radius:5px;">
             <input type="radio" name="baseOption" value="デザイン台座">
             <br>
-            <img src="base_design.png" alt="デザイン台座">
+            <img src="base_design.webp" alt="デザイン台座">
             デザイン台座<br>＋500円/体
           </label>
         </div>
@@ -698,14 +698,14 @@
           
           const planImage = document.getElementById("planImage");
           if (plan === "ライトプラン") {
-            planImage.src = "light-plan.png";
-          } else if (plan === "スタンダードプラン") {
-            planImage.src = "standard-plan.png";
-          } else if (plan === "プレミアムプラン") {
-            planImage.src = "premium-plan.png";
-          } else {
-            planImage.src = "";
-          }
+  planImage.src = "light-plan.webp";
+} else if (plan === "スタンダードプラン") {
+  planImage.src = "standard-plan.webp";
+} else if (plan === "プレミアムプラン") {
+  planImage.src = "premium-plan.webp";
+} else {
+  planImage.src = "";
+}
           
           const selectedSize = document.getElementById("sizeSelect").value;
           const selectedColor = parseInt(document.getElementById("colorSelect").value);
