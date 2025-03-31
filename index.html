@@ -564,11 +564,7 @@
     };
     
     function getUnitPriceMono(plan, orderCount) {
-      if (orderCount >= 2 && orderCount <= 5) {
-        if (plan === "ライトプラン") return 2500;
-        if (plan === "スタンダードプラン") return 4500;
-        if (plan === "プレミアムプラン") return 6000;
-      } else if (orderCount >= 6 && orderCount <= 9) {
+      if (orderCount >= 5 && orderCount <= 9) {
         if (plan === "ライトプラン") return 2300;
         if (plan === "スタンダードプラン") return 4000;
         if (plan === "プレミアムプラン") return 5500;
@@ -592,12 +588,10 @@
       return 0;
     }
     
-    // 料金計算関数
+    // 料金計算関数（修正済み）
     function calculatePrice(plan, orderCount, selectedSize, colorCount, baseOption) {
-      // カラー数が1の場合は単色料金で計算
+      // カラー数が1の場合
       if (colorCount === 1) {
-        const basePrice = basePricesMono[plan];
-        const unitPrice = getUnitPriceMono(plan, orderCount);
         const sizeOption = sizeCosts[plan][selectedSize];
         if (sizeOption === "制作不可") {
           return { total: "選択されたサイズは制作不可です。", breakdown: "" };
@@ -606,21 +600,39 @@
         if (baseOption === "ワンカラー台座") baseOptionCost = 300;
         else if (baseOption === "デザイン台座") baseOptionCost = 500;
         
-        const additionalUnitsCost = (orderCount - 1) * unitPrice;
-        const sizeCostTotal = sizeOption * orderCount;
-        const baseOptionTotal = baseOptionCost * orderCount;
-        
-        const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal;
-        
-        const breakdown = `内訳:
+        if (orderCount <= 4) {
+          // 注文個数が1〜4の場合：通常プラン（基本料金＋追加料金）
+          const basePrice = basePrices[plan];
+          const unitPrice = getUnitPrice(plan, orderCount);
+          const additionalUnitsCost = (orderCount - 1) * unitPrice;
+          const sizeCostTotal = sizeOption * orderCount;
+          const baseOptionTotal = baseOptionCost * orderCount;
+          const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal;
+          const breakdown = `内訳:
 ・基本料金: ${basePrice.toLocaleString()}円
 ・追加料金: ${additionalUnitsCost.toLocaleString()}円
 ・サイズアップ: ${sizeCostTotal.toLocaleString()}円
 ・台座: ${baseOptionTotal.toLocaleString()}円
 -----------------------
 合計金額: ${total.toLocaleString()}円`;
-        
-        return { total, breakdown };
+          return { total, breakdown };
+        } else {
+          // 注文個数が5個以上の場合：単色プラン（別料金設定）
+          const basePrice = basePricesMono[plan];
+          const unitPrice = getUnitPriceMono(plan, orderCount);
+          const additionalUnitsCost = (orderCount - 1) * unitPrice;
+          const sizeCostTotal = sizeOption * orderCount;
+          const baseOptionTotal = baseOptionCost * orderCount;
+          const total = basePrice + additionalUnitsCost + sizeCostTotal + baseOptionTotal;
+          const breakdown = `内訳:
+・基本料金: ${basePrice.toLocaleString()}円
+・追加料金: ${additionalUnitsCost.toLocaleString()}円
+・サイズアップ: ${sizeCostTotal.toLocaleString()}円
+・台座: ${baseOptionTotal.toLocaleString()}円
+-----------------------
+合計金額: ${total.toLocaleString()}円`;
+          return { total, breakdown };
+        }
       } else {
         // カラー数が1以外の場合（既存の料金プラン）
         const basePrice = basePrices[plan];
